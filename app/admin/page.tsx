@@ -1,0 +1,146 @@
+"use client"
+
+import { mockClubs, mockRecruitmentEvents, mockRegistrations } from "@/data/mock-data"
+import { useAuth } from "@/context/auth-context"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { Building2, Calendar, Users, TrendingUp } from "lucide-react"
+
+export default function AdminDashboard() {
+  const { user } = useAuth()
+
+  const stats = {
+    totalClubs: mockClubs.length,
+    recruitingClubs: mockClubs.filter((c) => c.isRecruiting).length,
+    upcomingEvents: mockRecruitmentEvents.filter((e) => e.status === "upcoming").length,
+    totalRegistrations: mockRegistrations.length,
+    pendingRegistrations: mockRegistrations.filter((r) => r.status === "pending").length,
+  }
+
+  const recentRegistrations = mockRegistrations
+    .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime())
+    .slice(0, 5)
+
+  return (
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome back, {user?.name}. Here&apos;s an overview of the recruitment system.
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Clubs</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.totalClubs}</div>
+            <p className="text-xs text-muted-foreground">{stats.recruitingClubs} actively recruiting</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Events</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.upcomingEvents}</div>
+            <p className="text-xs text-muted-foreground">Scheduled recruitment events</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Registrations</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.totalRegistrations}</div>
+            <p className="text-xs text-muted-foreground">Across all events</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">{stats.pendingRegistrations}</div>
+            <p className="text-xs text-muted-foreground">Registrations awaiting approval</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Recent Registrations */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground">Recent Registrations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {recentRegistrations.map((reg) => {
+                const event = mockRecruitmentEvents.find((e) => e.id === reg.eventId)
+                return (
+                  <div
+                    key={reg.id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{reg.studentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {event?.clubName} - {event?.title}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      variant={reg.status === "approved" ? "success" : reg.status === "rejected" ? "error" : "warning"}
+                    >
+                      {reg.status}
+                    </StatusBadge>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-foreground">Upcoming Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {mockRecruitmentEvents
+                .filter((e) => e.status === "upcoming")
+                .slice(0, 5)
+                .map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center justify-between rounded-lg border border-border bg-background p-3"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{event.clubName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {event.testDate} • {event.venue}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-foreground">
+                        {event.registeredCount}/{event.maxParticipants}
+                      </p>
+                      <p className="text-xs text-muted-foreground">registered</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

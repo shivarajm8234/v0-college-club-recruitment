@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { Search, Building2, Calendar, Bell } from "lucide-react"
+import { Search, Building2, Calendar, Bell, Clock, MapPin, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 export default function StudentDashboard() {
@@ -76,30 +76,45 @@ export default function StudentDashboard() {
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-foreground">Upcoming Recruitment Events</h2>
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/student/events">View All</Link>
-          </Button>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {upcomingEvents.map((event) => (
-            <Card key={event.id} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <StatusBadge variant="success">{event.status}</StatusBadge>
-                  <span className="text-xs text-muted-foreground">
-                    {event.registeredCount}/{event.maxParticipants} registered
-                  </span>
-                </div>
-                <h3 className="mb-1 font-semibold text-foreground">{event.clubName}</h3>
-                <p className="mb-2 text-sm text-muted-foreground">{event.title}</p>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <p>📅 {event.testDate}</p>
-                  <p>🕐 {event.time}</p>
-                  <p>📍 {event.venue}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {upcomingEvents.map((event) => {
+            const club = mockClubs.find((c) => c.id === event.clubId)
+            return (
+              <Card key={event.id} className="bg-card border-border">
+                <CardContent className="p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <StatusBadge variant="success">{event.status}</StatusBadge>
+                    <span className="text-xs text-muted-foreground">
+                      {event.registeredCount}/{event.maxParticipants} registered
+                    </span>
+                  </div>
+                  <h3 className="mb-1 font-semibold text-foreground">{event.clubName}</h3>
+                  <p className="mb-3 text-sm text-muted-foreground">{event.title}</p>
+                  <div className="mb-4 space-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3.5 w-3.5 text-primary" />
+                      <span>{event.testDate}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-3.5 w-3.5 text-primary" />
+                      <span>{event.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      <span>{event.venue}</span>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="w-full gap-2">
+                    <Link href={`/student/clubs/${event.clubId}`}>
+                      View Details
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </div>
 
@@ -121,6 +136,7 @@ export default function StudentDashboard() {
               variant={selectedCategory === null ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(null)}
+              className={selectedCategory === null ? "" : "bg-transparent"}
             >
               All
             </Button>
@@ -130,6 +146,7 @@ export default function StudentDashboard() {
                 variant={selectedCategory === category ? "default" : "outline"}
                 size="sm"
                 onClick={() => setSelectedCategory(category)}
+                className={selectedCategory === category ? "" : "bg-transparent"}
               >
                 {category}
               </Button>

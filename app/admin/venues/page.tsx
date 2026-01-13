@@ -8,22 +8,41 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MapPin, Users, Check, X, Calendar } from "lucide-react"
+import { MapPin, Users, Check, X, Calendar, Clock, Loader2 } from "lucide-react"
 
 export default function VenuesPage() {
   const [selectedVenue, setSelectedVenue] = useState<string>("")
   const [selectedDate, setSelectedDate] = useState<string>("")
+  const [selectedTime, setSelectedTime] = useState<string>("")
+  const [isChecking, setIsChecking] = useState(false)
   const [checkResult, setCheckResult] = useState<{
     checked: boolean
     available: boolean
     bookedBy?: string
   } | null>(null)
 
-  const handleCheckAvailability = () => {
+  const timeSlots = [
+    "9:00 AM - 11:00 AM",
+    "10:00 AM - 12:00 PM",
+    "11:00 AM - 1:00 PM",
+    "2:00 PM - 4:00 PM",
+    "3:00 PM - 5:00 PM",
+    "3:00 PM - 6:00 PM",
+  ]
+
+  const handleCheckAvailability = async () => {
     if (!selectedVenue || !selectedDate) return
 
+    setIsChecking(true)
+    setCheckResult(null)
+
+    // Simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 800))
+
     // Find matching slot
-    const slot = mockVenueSlots.find((s) => s.venueId === selectedVenue && s.date === selectedDate)
+    const slot = mockVenueSlots.find(
+      (s) => s.venueId === selectedVenue && s.date === selectedDate && (!selectedTime || s.time === selectedTime),
+    )
 
     if (slot) {
       setCheckResult({
@@ -38,6 +57,7 @@ export default function VenuesPage() {
         available: true,
       })
     }
+    setIsChecking(false)
   }
 
   const selectedVenueData = mockVenues.find((v) => v.id === selectedVenue)
@@ -55,7 +75,7 @@ export default function VenuesPage() {
           <CardTitle className="text-foreground">Check Availability</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-2">
               <Label className="text-foreground">Select Venue</Label>
               <Select value={selectedVenue} onValueChange={setSelectedVenue}>
@@ -80,46 +100,87 @@ export default function VenuesPage() {
                 className="bg-background border-input"
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-foreground">Time Slot (Optional)</Label>
+              <Select value={selectedTime} onValueChange={setSelectedTime}>
+                <SelectTrigger className="bg-background border-input">
+                  <SelectValue placeholder="Any time" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="any">Any time</SelectItem> {/* Updated value prop */}
+                  {timeSlots.map((slot) => (
+                    <SelectItem key={slot} value={slot}>
+                      {slot}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="flex items-end">
-              <Button onClick={handleCheckAvailability} disabled={!selectedVenue || !selectedDate} className="w-full">
-                Check Availability
+              <Button
+                onClick={handleCheckAvailability}
+                disabled={!selectedVenue || !selectedDate || isChecking}
+                className="w-full gap-2"
+              >
+                {isChecking ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  "Check Availability"
+                )}
               </Button>
             </div>
           </div>
 
-          {/* Result Display */}
+          {/* Result Display - Enhanced with clearer visual feedback */}
           {checkResult?.checked && (
             <div
-              className={`mt-6 flex items-center gap-4 rounded-lg border p-4 ${
-                checkResult.available
-                  ? "border-emerald-500/50 bg-emerald-500/10"
-                  : "border-destructive/50 bg-destructive/10"
+              className={`mt-6 flex items-center gap-4 rounded-lg border-2 p-4 ${
+                checkResult.available ? "border-emerald-500 bg-emerald-500/10" : "border-destructive bg-destructive/10"
               }`}
             >
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-full ${
+                className={`flex h-14 w-14 items-center justify-center rounded-full ${
                   checkResult.available ? "bg-emerald-500/20" : "bg-destructive/20"
                 }`}
               >
                 {checkResult.available ? (
-                  <Check className="h-6 w-6 text-emerald-400" />
+                  <Check className="h-7 w-7 text-emerald-400" />
                 ) : (
-                  <X className="h-6 w-6 text-destructive" />
+                  <X className="h-7 w-7 text-destructive" />
                 )}
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-foreground">{selectedVenueData?.name}</h3>
-                  <StatusBadge variant={checkResult.available ? "success" : "error"}>
+                <div className="flex items-center gap-3 mb-1">
+                  <h3 className="text-lg font-semibold text-foreground">{selectedVenueData?.name}</h3>
+                  <StatusBadge
+                    variant={checkResult.available ? "success" : "error"}
+                    className="text-sm font-bold px-3 py-1"
+                  >
                     {checkResult.available ? "AVAILABLE" : "NOT AVAILABLE"}
                   </StatusBadge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {selectedDate} • {selectedVenueData?.location}
-                </p>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {selectedDate}
+                  </span>
+                  {selectedTime && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      {selectedTime}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" />
+                    {selectedVenueData?.location}
+                  </span>
+                </div>
                 {checkResult.bookedBy && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Currently booked by: <span className="text-foreground">{checkResult.bookedBy}</span>
+                  <p className="mt-2 text-sm text-amber-400">
+                    Currently booked by: <span className="font-medium">{checkResult.bookedBy}</span>
                   </p>
                 )}
               </div>

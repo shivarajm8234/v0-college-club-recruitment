@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
-import { mockNotifications, mockClubs } from "@/data/mock-data"
-import type { Notification } from "@/types"
+import { useState, useEffect } from "react"
+import { getNotifications, createNotification } from "@/lib/db/notifications"
+import { getClubs } from "@/lib/db/clubs"
+import type { Notification, Club } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -20,9 +21,28 @@ import {
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bell, Plus, Send, Users, Building2 } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications)
+  const { user } = useAuth()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    setLoading(true)
+    const [fetchedNotifications, fetchedClubs] = await Promise.all([
+      getNotifications(),
+      getClubs()
+    ])
+    setNotifications(fetchedNotifications)
+    setClubs(fetchedClubs)
+    setLoading(false)
+  }
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [sendSuccess, setSendSuccess] = useState(false)
@@ -50,9 +70,9 @@ export default function NotificationsPage() {
     if (!validateForm()) return
 
     setIsSending(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
+    
+    // In real app, we might call an API to send emails too
+    
     const newNotification: Notification = {
       id: `n${Date.now()}`,
       title: formData.title,
@@ -60,18 +80,24 @@ export default function NotificationsPage() {
       targetAudience: formData.targetAudience,
       clubId: formData.clubId || undefined,
       sentAt: new Date().toISOString(),
-      sentBy: "Admin",
+      sentBy: user?.name || "Admin",
     }
 
-    setNotifications([newNotification, ...notifications])
-    setIsSending(false)
-    setSendSuccess(true)
+    try {
+      await createNotification(newNotification)
+      setNotifications([newNotification, ...notifications])
+      setIsSending(false)
+      setSendSuccess(true)
 
-    setTimeout(() => {
-      setIsCreateOpen(false)
-      setSendSuccess(false)
-      resetForm()
-    }, 1500)
+      setTimeout(() => {
+        setIsCreateOpen(false)
+        setSendSuccess(false)
+        resetForm()
+      }, 1500)
+    } catch (error) {
+      console.error("Failed to send notification", error)
+      setIsSending(false)
+    }
   }
 
   const resetForm = () => {
@@ -91,7 +117,7 @@ export default function NotificationsPage() {
       case "registered":
         return "Registered Students"
       case "specific_club":
-        const club = mockClubs.find((c) => c.id === clubId)
+        const club = clubs.find((c) => c.id === clubId)
         return club ? `${club.name} Members` : "Specific Club"
       default:
         return audience
@@ -224,7 +250,7 @@ export default function NotificationsPage() {
                         <SelectValue placeholder="Choose a club" />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border">
-                        {mockClubs.map((club) => (
+                        {clubs.map((club) => (
                           <SelectItem key={club.id} value={club.id}>
                             {club.name}
                           </SelectItem>

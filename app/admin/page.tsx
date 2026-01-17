@@ -1,33 +1,98 @@
 "use client"
 
-import { mockClubs, mockRecruitmentEvents, mockRegistrations } from "@/data/mock-data"
+import { useState, useEffect } from "react"
+import { getClubs, getClubById } from "@/lib/db/clubs"
+import { getRecruitmentEvents } from "@/lib/db/events"
+import { getRegistrations } from "@/lib/db/registrations"
+import { seedDatabase } from "@/lib/db/seed"
+import type { Club, RecruitmentEvent, Registration } from "@/types"
 import { useAuth } from "@/context/auth-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { Building2, Calendar, Users, TrendingUp } from "lucide-react"
+import { Building2, Calendar, Users, TrendingUp, Database } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function AdminDashboard() {
   const { user } = useAuth()
+  const [clubs, setClubs] = useState<Club[]>([])
+  const [events, setEvents] = useState<RecruitmentEvent[]>([])
+  const [registrations, setRegistrations] = useState<Registration[]>([])
+  const [loading, setLoading] = useState(true)
+  const [isSeeding, setIsSeeding] = useState(false)
 
-  const stats = {
-    totalClubs: mockClubs.length,
-    recruitingClubs: mockClubs.filter((c) => c.isRecruiting).length,
-    upcomingEvents: mockRecruitmentEvents.filter((e) => e.status === "upcoming").length,
-    totalRegistrations: mockRegistrations.length,
-    pendingRegistrations: mockRegistrations.filter((r) => r.status === "pending").length,
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  const fetchData = async () => {
+    try {
+      if (user?.role === "club_admin" && user.managedClubId) {
+        // Fetch only data for the managed club
+        const [club, clubEvents] = await Promise.all([
+          getClubById(user.managedClubId),
+          getRecruitmentEvents(user.managedClubId),
+        ])
+        
+        setClubs(club ? [club] : [])
+        setEvents(clubEvents)
+        
+        
+        // Fetch registrations for each event individually to respect security rules
+        const registrationsPromises = clubEvents.map(event => getRegistrations(undefined, event.id))
+        const registrationArrays = await Promise.all(registrationsPromises)
+        const allRegistrations = registrationArrays.flat()
+        
+        setRegistrations(allRegistrations)
+      } else {
+        // Fetch all data for super admin
+        const [fetchedClubs, fetchedEvents, fetchedRegistrations] = await Promise.all([
+          getClubs(),
+          getRecruitmentEvents(),
+          getRegistrations()
+        ])
+        setClubs(fetchedClubs)
+        setEvents(fetchedEvents)
+        setRegistrations(fetchedRegistrations)
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error("Failed to fetch data", error)
+    }
   }
 
-  const recentRegistrations = mockRegistrations
+  const handleSeed = async () => {
+    if (!confirm("This will populate the database with mock data. Continue?")) return
+    setIsSeeding(true)
+    await seedDatabase()
+    await fetchData()
+    setIsSeeding(false)
+  }
+
+  const stats = {
+    totalClubs: clubs.length,
+    recruitingClubs: clubs.filter((c) => c.isRecruiting).length,
+    upcomingEvents: events.filter((e) => e.status === "upcoming").length,
+    totalRegistrations: registrations.length,
+    pendingRegistrations: registrations.filter((r) => r.status === "pending").length,
+  }
+
+  const recentRegistrations = registrations
     .sort((a, b) => new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime())
     .slice(0, 5)
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {user?.name}. Here&apos;s an overview of the recruitment system.
-        </p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user?.name}. Here&apos;s an overview of the recruitment system.
+          </p>
+        </div>
+        <Button onClick={handleSeed} disabled={isSeeding} variant="outline" className="gap-2">
+          <Database className="h-4 w-4" />
+          {isSeeding ? "Seeding..." : "Seed Database"}
+        </Button>
       </div>
 
       {/* Stats Grid */}
@@ -84,7 +149,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {recentRegistrations.map((reg) => {
-                const event = mockRecruitmentEvents.find((e) => e.id === reg.eventId)
+                const event = events.find((e) => e.id === reg.eventId)
                 return (
                   <div
                     key={reg.id}
@@ -115,7 +180,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockRecruitmentEvents
+              {events
                 .filter((e) => e.status === "upcoming")
                 .slice(0, 5)
                 .map((event) => (

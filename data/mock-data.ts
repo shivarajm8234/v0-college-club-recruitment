@@ -44,8 +44,30 @@ export const mockStudents: User[] = [
 ]
 
 export const mockAdmins: User[] = [
-  { id: "a1", email: "admin@college.edu", name: "Admin User", role: "admin" },
-  { id: "a2", email: "techclub@college.edu", name: "Tech Club Admin", role: "club_admin" },
+  {
+    id: "admin1",
+    name: "System Admin",
+    email: "shivarajmani2005@gmail.com",
+    role: "admin",
+  },
+  {
+    id: "admin2",
+    name: "Varun Kumar",
+    email: "varunkumarellur01@gmail.com",
+    role: "admin",
+  },
+  {
+    id: "admin3",
+    name: "Mohammed Touqeer",
+    email: "mohammedtouqeer72@gmail.com",
+    role: "admin",
+  },
+  {
+    id: "admin4",
+    name: "Super Admin (New)",
+    email: "ttsamant09@gmail.com",
+    role: "admin",
+  },
 ]
 
 export const mockClubs: Club[] = [
@@ -188,6 +210,7 @@ export const mockRecruitmentEvents: RecruitmentEvent[] = [
 export const mockRegistrations: Registration[] = [
   {
     id: "r1",
+    userId: "s1",
     eventId: "e1",
     studentId: "STU001",
     studentName: "John Smith",
@@ -198,6 +221,7 @@ export const mockRegistrations: Registration[] = [
   },
   {
     id: "r2",
+    userId: "s2",
     eventId: "e1",
     studentId: "STU002",
     studentName: "Sarah Johnson",
@@ -208,6 +232,7 @@ export const mockRegistrations: Registration[] = [
   },
   {
     id: "r3",
+    userId: "s1",
     eventId: "e2",
     studentId: "STU001",
     studentName: "John Smith",
@@ -218,6 +243,7 @@ export const mockRegistrations: Registration[] = [
   },
   {
     id: "r4",
+    userId: "s3",
     eventId: "e1",
     studentId: "STU003",
     studentName: "Mike Wilson",
@@ -228,6 +254,7 @@ export const mockRegistrations: Registration[] = [
   },
   {
     id: "r5",
+    userId: "s4",
     eventId: "e3",
     studentId: "STU004",
     studentName: "Emily Davis",
@@ -238,6 +265,7 @@ export const mockRegistrations: Registration[] = [
   },
   {
     id: "r6",
+    userId: "s1",
     eventId: "e1",
     studentId: "STU001",
     studentName: "John Smith",

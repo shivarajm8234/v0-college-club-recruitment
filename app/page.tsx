@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { GraduationCap, Users, Building2, Calendar, ArrowRight, Shield } from "lucide-react"
 
 export default function LandingPage() {
@@ -30,13 +31,9 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="container py-24 md:py-32">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Spring Recruitment 2024 is Open
-            </div>
+            <StatusBadge variant="default" className="animate-fade-in">
+            Spring Recruitment 2026 is Open
+          </StatusBadge>
             <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight text-foreground md:text-6xl">
               Discover Your Perfect <span className="text-primary">College Club</span>
             </h1>

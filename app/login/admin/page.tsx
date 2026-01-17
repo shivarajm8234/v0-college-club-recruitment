@@ -30,13 +30,13 @@ export default function AdminLoginPage() {
     }
 
     setIsLoading(true)
-    const success = await login(email, password, "admin")
+    const result = await login(email, password, "admin")
     setIsLoading(false)
 
-    if (success) {
+    if (result.success) {
       router.push("/admin")
     } else {
-      setError("Invalid email or password. Try: admin@college.edu / admin123")
+      setError(result.error || "Login failed. Please check your credentials and try again.")
     }
   }
 
@@ -106,11 +106,7 @@ export default function AdminLoginPage() {
                 )}
               </Button>
             </form>
-            <div className="mt-6 rounded-lg bg-muted p-4">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground">Email: admin@college.edu</p>
-              <p className="text-xs text-muted-foreground">Password: admin123</p>
-            </div>
+            {/* Demo credentials removed as we are using real auth */}
           </CardContent>
         </Card>
       </div>

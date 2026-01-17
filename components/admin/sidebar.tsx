@@ -12,6 +12,7 @@ const navItems = [
   { href: "/admin/registrations", label: "Registrations", icon: Users },
   { href: "/admin/venues", label: "Venue Availability", icon: MapPin },
   { href: "/admin/notifications", label: "Notifications", icon: Bell },
+  { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 

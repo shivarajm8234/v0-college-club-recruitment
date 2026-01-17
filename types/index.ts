@@ -5,6 +5,7 @@ export interface User {
   role: "student" | "admin" | "club_admin"
   studentId?: string
   department?: string
+  managedClubId?: string
 }
 
 export interface Club {
@@ -16,6 +17,9 @@ export interface Club {
   memberCount: number
   image: string
   isRecruiting: boolean
+  adminEmail?: string
+  recruitmentDetails?: string
+  websiteUrl?: string
 }
 
 export interface RecruitmentEvent {
@@ -25,6 +29,7 @@ export interface RecruitmentEvent {
   title: string
   testDate: string
   venue: string
+  venueId?: string // Optional for backward compatibility, but required for new events
   time: string
   description: string
   maxParticipants: number
@@ -34,8 +39,9 @@ export interface RecruitmentEvent {
 
 export interface Registration {
   id: string
+  userId: string // Auth UID for security
   eventId: string
-  studentId: string
+  studentId: string // Academic ID (display)
   studentName: string
   studentEmail: string
   department: string
@@ -66,4 +72,16 @@ export interface Notification {
   clubId?: string
   sentAt: string
   sentBy: string
+  userId?: string // For specific user targeting
+  read?: boolean
+}
+
+export interface JoinRequest {
+  id: string
+  userId: string
+  clubId: string
+  studentName: string
+  studentEmail: string
+  status: "pending" | "approved" | "rejected"
+  requestedAt: string
 }

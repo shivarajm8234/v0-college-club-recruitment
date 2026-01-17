@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { mockRegistrations, mockRecruitmentEvents } from "@/data/mock-data"
-import type { Registration } from "@/types"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/context/auth-context"
+import { getRegistrations, updateRegistrationStatus } from "@/lib/db/registrations"
+import { getRecruitmentEvents } from "@/lib/db/events"
+import type { Registration, RecruitmentEvent } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,11 +15,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Check, X, AlertTriangle } from "lucide-react"
 
 export default function RegistrationsPage() {
-  const [registrations, setRegistrations] = useState<Registration[]>(mockRegistrations)
+  const [registrations, setRegistrations] = useState<Registration[]>([])
+  const [events, setEvents] = useState<RecruitmentEvent[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [eventFilter, setEventFilter] = useState<string>("all")
   const [rejectRegistration, setRejectRegistration] = useState<Registration | null>(null)
+
+  const { user } = useAuth()
+
+  useEffect(() => {
+    fetchData()
+  }, [user])
+
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      if (user?.role === "club_admin" && user.managedClubId) {
+        // 1. Fetch only events for this club
+        const clubEvents = await getRecruitmentEvents(user.managedClubId)
+        
+        // 2. Fetch registrations for each event individually
+        const registrationsPromises = clubEvents.map(event => getRegistrations(undefined, event.id))
+        const registrationArrays = await Promise.all(registrationsPromises)
+        const allRegistrations = registrationArrays.flat()
+
+        setEvents(clubEvents)
+        setRegistrations(allRegistrations)
+      } else {
+        // Super Admin - fetch all
+        const [fetchedRegistrations, fetchedEvents] = await Promise.all([
+          getRegistrations(),
+          getRecruitmentEvents()
+        ])
+        setEvents(fetchedEvents)
+        setRegistrations(fetchedRegistrations)
+      }
+    } catch (error) {
+      console.error("Error fetching registrations:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredRegistrations = registrations.filter((reg) => {
     const matchesSearch =
@@ -50,28 +90,47 @@ export default function RegistrationsPage() {
 
   const duplicateIds = getDuplicates()
 
-  const handleApprove = (id: string) => {
-    setRegistrations(registrations.map((reg) => (reg.id === id ? { ...reg, status: "approved" } : reg)))
+  const handleApprove = async (id: string) => {
+    try {
+      await updateRegistrationStatus(id, "approved")
+      setRegistrations(registrations.map((reg) => (reg.id === id ? { ...reg, status: "approved" } : reg)))
+    } catch (error) {
+      console.error("Failed to approve registration", error)
+    }
   }
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!rejectRegistration) return
-    setRegistrations(
-      registrations.map((reg) => (reg.id === rejectRegistration.id ? { ...reg, status: "rejected" } : reg)),
-    )
-    setRejectRegistration(null)
+    try {
+      await updateRegistrationStatus(rejectRegistration.id, "rejected")
+      setRegistrations(
+        registrations.map((reg) => (reg.id === rejectRegistration.id ? { ...reg, status: "rejected" } : reg)),
+      )
+      setRejectRegistration(null)
+    } catch (error) {
+      console.error("Failed to reject registration", error)
+    }
   }
 
-  const handleBulkRejectDuplicates = () => {
-    setRegistrations(
-      registrations.map((reg) =>
-        duplicateIds.has(reg.id) && reg.status === "pending" ? { ...reg, status: "rejected" } : reg,
-      ),
-    )
+  const handleBulkRejectDuplicates = async () => {
+    // This assumes we can just loop update, ideally we'd use a batch
+    try {
+      const duplicatesToReject = registrations.filter(reg => duplicateIds.has(reg.id) && reg.status === "pending")
+      await Promise.all(duplicatesToReject.map(reg => updateRegistrationStatus(reg.id, "rejected")))
+      
+      setRegistrations(
+        registrations.map((reg) =>
+          duplicateIds.has(reg.id) && reg.status === "pending" ? { ...reg, status: "rejected" } : reg,
+        ),
+      )
+    } catch (error) {
+      console.error("Failed to bulk reject", error)
+    }
   }
 
   const getEventName = (eventId: string) => {
-    const event = mockRecruitmentEvents.find((e) => e.id === eventId)
+    const event = events.find((e) => e.id === eventId)
+    // Fallback if events not loaded yet or event deleted but registration exists
     return event ? `${event.clubName} - ${event.title}` : eventId
   }
 
@@ -148,7 +207,7 @@ export default function RegistrationsPage() {
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
                 <SelectItem value="all">All Events</SelectItem>
-                {mockRecruitmentEvents.map((event) => (
+                {events.map((event) => (
                   <SelectItem key={event.id} value={event.id}>
                     {event.clubName} - {event.title}
                   </SelectItem>

@@ -30,13 +30,13 @@ export default function StudentLoginPage() {
     }
 
     setIsLoading(true)
-    const success = await login(email, password, "student")
+    const result = await login(email, password, "student")
     setIsLoading(false)
 
-    if (success) {
+    if (result.success) {
       router.push("/student")
     } else {
-      setError("Invalid email or password. Try: john@college.edu / password")
+      setError(result.error || "Login failed. Please check your credentials and try again.")
     }
   }
 
@@ -106,10 +106,11 @@ export default function StudentLoginPage() {
                 )}
               </Button>
             </form>
-            <div className="mt-6 rounded-lg bg-muted p-4">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Demo Credentials:</p>
-              <p className="text-xs text-muted-foreground">Email: john@college.edu</p>
-              <p className="text-xs text-muted-foreground">Password: password</p>
+            <div className="mt-4 text-center text-sm">
+              <span className="text-muted-foreground">Don&apos;t have an account? </span>
+              <Link href="/register/student" className="font-medium text-primary hover:underline">
+                Register
+              </Link>
             </div>
           </CardContent>
         </Card>

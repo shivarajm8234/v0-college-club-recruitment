@@ -46,7 +46,15 @@ export function ClubCard({ club, linkPrefix = "/student/clubs" }: ClubCardProps)
             <span>{club.memberCount}</span>
           </div>
         </div>
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-2">
+          {club.websiteUrl && (
+             <div className="text-sm">
+                <span className="font-semibold mr-2">Club URL:</span>
+                <a href={club.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate inline-block max-w-[200px] align-bottom">
+                  {club.websiteUrl}
+                </a>
+             </div>
+          )}
           <Button
             asChild
             variant="outline"
@@ -54,7 +62,7 @@ export function ClubCard({ club, linkPrefix = "/student/clubs" }: ClubCardProps)
             className="w-full gap-2 bg-transparent group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
           >
             <Link href={`${linkPrefix}/${club.id}`}>
-              View Details
+              Read More
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>

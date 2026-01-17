@@ -35,6 +35,22 @@ export interface RecruitmentEvent {
   maxParticipants: number
   registeredCount: number
   status: "upcoming" | "ongoing" | "completed" | "cancelled"
+  eventType: "recruitment" | "quiz"
+  quiz?: Quiz
+}
+
+export interface QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correctOptionIndex: number
+  marks: number
+}
+
+export interface Quiz {
+  title: string
+  questions: QuizQuestion[]
+  totalMarks: number
 }
 
 export interface Registration {
@@ -47,6 +63,8 @@ export interface Registration {
   department: string
   registeredAt: string
   status: "pending" | "approved" | "rejected"
+  quizScore?: number
+  quizSubmitted?: boolean
 }
 
 export interface Venue {

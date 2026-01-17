@@ -49,7 +49,9 @@ service cloud.firestore {
     // Public read, Admin write, Club Admin can manage events for their club
     match /events/{eventId} {
       allow read: if true;
-      allow create: if isAdmin();
+      // Allow create if Admin OR if Club Admin matches the clubId in the new document
+      allow create: if isAdmin() || (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "club_admin" && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managedClubId == request.resource.data.clubId);
+      // Allow update/delete if Admin OR if Club Admin matches the clubId on existing document
       allow update, delete: if isAdmin() || (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "club_admin" && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.managedClubId == resource.data.clubId);
     }
 
@@ -74,7 +76,7 @@ service cloud.firestore {
     }
     match /venue_slots/{slotId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || (isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "club_admin");
     }
     
     // --- Notifications ---

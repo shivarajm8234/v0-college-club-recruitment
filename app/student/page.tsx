@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { Search, Building2, Calendar, Bell, Clock, MapPin, ArrowRight, CheckCircle2 } from "lucide-react"
+import { Search, Building2, Calendar, Bell, Clock, MapPin, ArrowRight, CheckCircle2, FileQuestion } from "lucide-react"
 import Link from "next/link"
 
 export default function StudentDashboard() {
@@ -143,14 +143,29 @@ export default function StudentDashboard() {
                            <span className="mx-1">•</span>
                           <Clock className="h-3.5 w-3.5 text-primary" />
                           <span>{event.time}</span>
+                          {event.quiz && (
+                            <>
+                              <span className="mx-1">•</span>
+                              <FileQuestion className="h-3.5 w-3.5 text-primary" />
+                              <span>{event.quiz.totalMarks} Marks</span>
+                            </>
+                          )}
                         </div>
 
-                      <Button asChild size="sm" variant="outline" className="w-full gap-2">
+                      <Button asChild size="sm" variant="outline" className="w-full gap-2 mb-2">
                         <Link href={`/student/clubs/${event.clubId}`}>
                           View Club Details
                           <ArrowRight className="h-3.5 w-3.5" />
                         </Link>
                       </Button>
+                      {event.quiz && (
+                          <Button asChild size="sm" className="w-full gap-2">
+                              <Link href={`/student/quiz/${event.id}`}>
+                                  <FileQuestion className="h-3.5 w-3.5" />
+                                  Take Quiz
+                              </Link>
+                          </Button>
+                      )}
                     </CardContent>
                   </Card>
               ))}
@@ -192,6 +207,12 @@ export default function StudentDashboard() {
                       <MapPin className="h-3.5 w-3.5 text-primary" />
                       <span>{event.venue}</span>
                     </div>
+                    {event.quiz && (
+                       <div className="flex items-center gap-2">
+                         <FileQuestion className="h-3.5 w-3.5 text-primary" />
+                         <span>Quiz: {event.quiz.totalMarks} Marks</span>
+                       </div>
+                    )}
                   </div>
                   <Button asChild size="sm" className="w-full gap-2">
                     <Link href={`/student/clubs/${event.clubId}`}>

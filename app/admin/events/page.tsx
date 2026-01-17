@@ -5,7 +5,7 @@ import { useAuth } from "@/context/auth-context"
 import { getRecruitmentEvents, createEvent, updateEvent, deleteEvent as deleteEventService } from "@/lib/db/events"
 import { getClubs } from "@/lib/db/clubs"
 import { getVenues } from "@/lib/db/venues"
-import type { RecruitmentEvent, Club, Venue } from "@/types"
+import type { RecruitmentEvent, Club, Venue, Quiz, QuizQuestion } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, Users } from "lucide-react"
+import { Plus, Pencil, Trash2, Calendar, MapPin, Clock, Users, X, Check, FileQuestion } from "lucide-react"
 
 export default function EventsPage() {
   const [events, setEvents] = useState<RecruitmentEvent[]>([])
@@ -60,16 +60,23 @@ export default function EventsPage() {
   const [editingEvent, setEditingEvent] = useState<RecruitmentEvent | null>(null)
   const [deleteEvent, setDeleteEvent] = useState<RecruitmentEvent | null>(null)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EventFormData>({
     clubId: "",
     title: "",
     testDate: "",
     venue: "",
-    venueId: "", // NEW: Store ID for booking
+    venueId: "",
     time: "",
     description: "",
     maxParticipants: 50,
-    status: "upcoming" as RecruitmentEvent["status"],
+    maxParticipants: 50,
+    status: "upcoming",
+    eventType: "recruitment",
+    quiz: {
+      title: "",
+      questions: [],
+      totalMarks: 0
+    }
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
@@ -100,6 +107,7 @@ export default function EventsPage() {
       ...formData,
       clubName: club?.name || "",
       registeredCount: 0,
+      quiz: formData.quiz // Ensure quiz is passed
     }
 
     try {
@@ -154,7 +162,14 @@ export default function EventsPage() {
       time: "",
       description: "",
       maxParticipants: 50,
+      maxParticipants: 50,
       status: "upcoming",
+      eventType: "recruitment",
+      quiz: {
+        title: "",
+        questions: [],
+        totalMarks: 0
+      }
     })
     setFormErrors({})
   }
@@ -165,12 +180,17 @@ export default function EventsPage() {
       title: event.title,
       testDate: event.testDate,
       venue: event.venue,
+      venueId: event.venueId || "",
       time: event.time,
       description: event.description,
       maxParticipants: event.maxParticipants,
-      maxParticipants: event.maxParticipants,
       status: event.status,
-      venueId: event.venueId || "",
+      eventType: event.eventType || "recruitment",
+      quiz: event.quiz || {
+        title: "",
+        questions: [],
+        totalMarks: 0
+      }
     })
     setEditingEvent(event)
   }
@@ -194,43 +214,83 @@ export default function EventsPage() {
   return (
     <div>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Recruitment Events</h1>
-          <p className="text-muted-foreground">Create and manage recruitment events</p>
-        </div>
-        <Dialog
-          open={isCreateOpen}
-          onOpenChange={(open) => {
-            setIsCreateOpen(open)
-            if (open) resetForm()
-            if (!open) resetForm()
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Create Recruitment Event</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Schedule a new recruitment event for a club
-              </DialogDescription>
-            </DialogHeader>
-            <EventForm 
-                onSubmit={handleCreate} 
-                submitLabel="Create Event" 
-                formData={formData}
-                setFormData={setFormData}
-                formErrors={formErrors}
-                clubs={clubs}
-                venues={venues}
-                userRole={user?.role}
-            />
-          </DialogContent>
-        </Dialog>
+         <div>
+           <h1 className="text-2xl font-bold text-foreground">Recruitment Events</h1>
+           <p className="text-muted-foreground">Create and manage recruitment events</p>
+         </div>
+         <div className="flex gap-2">
+            <Dialog
+              open={isCreateOpen}
+              onOpenChange={(open) => {
+                setIsCreateOpen(open)
+                if (open) {
+                    resetForm()
+                    setFormData(prev => ({ ...prev, eventType: "recruitment" }))
+                }
+                if (!open) resetForm()
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Event
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Create Recruitment Event</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
+                    Schedule a new recruitment event for a club
+                  </DialogDescription>
+                </DialogHeader>
+                <EventForm 
+                    onSubmit={handleCreate} 
+                    submitLabel="Create Event" 
+                    formData={formData}
+                    setFormData={setFormData}
+                    formErrors={formErrors}
+                    clubs={clubs}
+                    venues={venues}
+                    userRole={user?.role}
+                    isRecruitment={true}
+                />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog onOpenChange={(open) => {
+                if (open) {
+                    resetForm()
+                    setFormData(prev => ({ ...prev, eventType: "quiz" }))
+                }
+            }}>
+               <DialogTrigger asChild>
+                <Button 
+                    className="gap-2" 
+                    variant="secondary"
+                >
+                    <FileQuestion className="h-4 w-4" />
+                    Create Quiz
+                </Button>
+               </DialogTrigger>
+               <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
+                   <DialogHeader>
+                       <DialogTitle>Create Quiz</DialogTitle>
+                       <DialogDescription>Create a standalone quiz event</DialogDescription>
+                   </DialogHeader>
+                   <EventForm
+                        onSubmit={handleCreate}
+                        submitLabel="Create Quiz"
+                        formData={formData}
+                        setFormData={setFormData}
+                        formErrors={formErrors}
+                        clubs={clubs}
+                        venues={venues}
+                        userRole={user?.role}
+                        isQuiz={true}
+                   />
+               </DialogContent>
+            </Dialog>
+         </div>
       </div>
 
       {/* Events Grid */}
@@ -314,6 +374,8 @@ export default function EventsPage() {
             clubs={clubs}
             venues={venues}
             userRole={user?.role}
+            isQuiz={editingEvent?.eventType === "quiz"}
+            isRecruitment={editingEvent?.eventType === "recruitment"}
           />
         </DialogContent>
       </Dialog>
@@ -342,6 +404,8 @@ interface EventFormData {
   description: string
   maxParticipants: number
   status: RecruitmentEvent["status"]
+  eventType: RecruitmentEvent["eventType"]
+  quiz?: Quiz
 }
 
 interface EventFormProps {
@@ -351,8 +415,11 @@ interface EventFormProps {
   onSubmit: () => void
   submitLabel: string
   clubs: Club[]
+  clubs: Club[]
   venues: Venue[]
   userRole?: string
+  isQuiz?: boolean
+  isRecruitment?: boolean
 }
 
 function EventForm({
@@ -363,7 +430,9 @@ function EventForm({
   submitLabel,
   clubs,
   venues,
-  userRole
+  userRole,
+  isQuiz,
+  isRecruitment
 }: EventFormProps) {
   return (
     <div className="space-y-4">
@@ -484,6 +553,153 @@ function EventForm({
           </Select>
         </div>
       </div>
+
+
+
+      {isQuiz && (
+      <div className="space-y-4 pt-4 border-t">
+         <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Quiz Configuration</h3>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                   const newQuestion: QuizQuestion = {
+                       id: Date.now().toString(),
+                       question: "",
+                       options: ["", "", "", ""],
+                       correctOptionIndex: 0,
+                       marks: 1
+                   }
+                   const currentQuiz = formData.quiz || { title: "", questions: [], totalMarks: 0 }
+                   const updatedQuestions = [...(currentQuiz.questions || []), newQuestion]
+                   const totalMarks = updatedQuestions.reduce((sum, q) => sum + (q.marks || 0), 0)
+                   
+                   setFormData({
+                       ...formData,
+                       quiz: {
+                           ...currentQuiz,
+                           questions: updatedQuestions,
+                           totalMarks
+                       }
+                   })
+                }}
+            >
+                <Plus className="mr-2 h-4 w-4" /> Add Question
+            </Button>
+         </div>
+         
+         {(!formData.quiz?.questions || formData.quiz.questions.length === 0) && (
+             <p className="text-sm text-muted-foreground text-center py-4 bg-muted rounded-md border border-dashed">
+                 No quiz questions added. Click "Add Question" to create a quiz for this event.
+             </p>
+         )}
+
+         {formData.quiz?.questions?.map((q, qIndex) => (
+             <Card key={q.id} className="p-4 relative">
+                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 text-destructive"
+                    onClick={() => {
+                        if (!formData.quiz) return
+                        const updatedQuestions = formData.quiz.questions.filter((_, i) => i !== qIndex)
+                        const totalMarks = updatedQuestions.reduce((sum, q) => sum + (q.marks || 0), 0)
+                        setFormData({
+                            ...formData,
+                            quiz: { ...formData.quiz, questions: updatedQuestions, totalMarks }
+                        })
+                    }}
+                 >
+                     <X className="h-4 w-4" />
+                 </Button>
+
+                 <div className="space-y-4 pr-8">
+                     <div className="space-y-2">
+                        <Label>Question {qIndex + 1}</Label>
+                        <Input 
+                            value={q.question}
+                            onChange={(e) => {
+                                if (!formData.quiz) return
+                                const newQuestions = [...formData.quiz.questions]
+                                newQuestions[qIndex].question = e.target.value
+                                setFormData({
+                                    ...formData,
+                                    quiz: { ...formData.quiz, questions: newQuestions }
+                                })
+                            }}
+                            placeholder="Data Structures Question..."
+                        />
+                     </div>
+                     
+                     <div className="space-y-2">
+                         <Label>Marks</Label>
+                         <Input 
+                            type="number"
+                            min="1"
+                            value={q.marks}
+                            onChange={(e) => {
+                                if (!formData.quiz) return
+                                const newQuestions = [...formData.quiz.questions]
+                                newQuestions[qIndex].marks = parseInt(e.target.value) || 0
+                                const totalMarks = newQuestions.reduce((sum, q) => sum + (q.marks || 0), 0)
+                                setFormData({
+                                    ...formData,
+                                    quiz: { ...formData.quiz, questions: newQuestions, totalMarks }
+                                })
+                            }}
+                         />
+                     </div>
+
+                     <div className="space-y-2">
+                         <Label>Options (Select the radio button for the correct answer)</Label>
+                         {q.options.map((opt, oIndex) => (
+                             <div key={oIndex} className="flex items-center gap-2">
+                                 <input 
+                                    type="radio" 
+                                    name={`correct-${q.id}`}
+                                    checked={q.correctOptionIndex === oIndex}
+                                    onChange={() => {
+                                        if (!formData.quiz) return
+                                        const newQuestions = [...formData.quiz.questions]
+                                        newQuestions[qIndex].correctOptionIndex = oIndex
+                                        setFormData({
+                                            ...formData,
+                                            quiz: { ...formData.quiz, questions: newQuestions }
+                                        })
+                                    }}
+                                    className="h-4 w-4 mt-1"
+                                 />
+                                 <Input 
+                                    value={opt}
+                                    onChange={(e) => {
+                                        if (!formData.quiz) return
+                                        const newQuestions = [...formData.quiz.questions]
+                                        newQuestions[qIndex].options[oIndex] = e.target.value
+                                        setFormData({
+                                            ...formData,
+                                            quiz: { ...formData.quiz, questions: newQuestions }
+                                        })
+                                    }}
+                                    placeholder={`Option ${oIndex + 1}`}
+                                    className={q.correctOptionIndex === oIndex ? "border-green-500 ring-1 ring-green-500" : ""}
+                                 />
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+             </Card>
+         ))}
+         
+         {formData.quiz?.questions && formData.quiz.questions.length > 0 && (
+             <div className="text-right text-sm font-bold">
+                 Total Marks: {formData.quiz.totalMarks}
+             </div>
+         )}
+      </div>
+      )}
       <DialogFooter>
         <Button onClick={onSubmit}>{submitLabel}</Button>
       </DialogFooter>

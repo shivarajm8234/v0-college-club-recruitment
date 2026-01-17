@@ -8,13 +8,14 @@ import Link from "next/link"
 import { db, auth } from "@/lib/firebase"
 import { useAuth } from "@/context/auth-context"
 import { getRegistrations, createRegistration, checkRegistration } from "@/lib/db/registrations"
+import { getRecruitmentEvents } from "@/lib/db/events"
 
 import type { Registration, Club, RecruitmentEvent } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs, onSnapshot } from "firebase/firestore"
 import {
   ArrowLeft,
   Users,
@@ -27,7 +28,8 @@ import {
   AlertTriangle,
   Loader2,
   Info,
-  Globe
+  Globe,
+  FileQuestion
 } from "lucide-react"
 
 export default function ClubDetailClient({ 
@@ -55,16 +57,40 @@ export default function ClubDetailClient({
   const [loadingParticipants, setLoadingParticipants] = useState(false)
 
   const club = initialClub
-  const clubEvents = initialEvents
-
+  const [events, setEvents] = useState<RecruitmentEvent[]>(initialEvents)
+  const [loadingEvents, setLoadingEvents] = useState(false)
+  
   useEffect(() => {
-    // Queries via userId (Auth UID) to match security rules
+    if (!id) return;
+    
+    setLoadingEvents(true)
+    // Create query
+    const q = query(collection(db, "events"), where("clubId", "==", id))
+    
+    // Subscribe to real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const freshEvents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as RecruitmentEvent))
+        setEvents(freshEvents)
+        setLoadingEvents(false)
+    }, (error) => {
+        console.error("Error listening to event updates:", error)
+        setLoadingEvents(false)
+    })
+    
+    // Cleanup subscription
+    return () => unsubscribe()
+  }, [id])
+
+  // Queries via userId (Auth UID) to match security rules
+  useEffect(() => {
     if (user?.id) {
        getRegistrations(user.id).then(setUserRegistrations)
     }
-    
-
   }, [user?.id, club?.id])
+
+  const clubEvents = events
+  const generalEvents = clubEvents.filter(e => e.eventType === "recruitment" || (!e.eventType && !e.quiz))
+  const quizEvents = clubEvents.filter(e => e.eventType === "quiz" || (!!e.quiz && e.eventType !== "recruitment"))
 
   // Fetch participants when an event is selected (if permitted)
   useEffect(() => {
@@ -102,9 +128,7 @@ export default function ClubDetailClient({
     return existingReg
   }
 
-  const isAlreadyRegisteredForClub = clubEvents.some((event) =>
-    userRegistrations.some((r) => r.eventId === event.id && r.status !== "rejected"),
-  )
+
 
   if (!club) {
      return (
@@ -138,13 +162,7 @@ export default function ClubDetailClient({
       return
     }
 
-    if (isAlreadyRegisteredForClub) {
-      setErrorMessage(
-        "You have already registered for another event from this club. Multiple registrations for the same club are not allowed.",
-      )
-      setRegistrationStatus("error")
-      return
-    }
+
 
     setIsRegistering(true)
     setRegistrationStatus("idle")
@@ -292,23 +310,58 @@ export default function ClubDetailClient({
       )}
 
       {/* Duplicate Registration Warning */}
-      {isAlreadyRegisteredForClub && registrationStatus !== "error" && (
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
-          <AlertTriangle className="h-5 w-5 text-amber-400" />
-          <div>
-            <p className="font-medium text-amber-400">Already Registered</p>
-            <p className="text-sm text-amber-400/80">
-              You have already registered for a recruitment event from this club. Multiple registrations are not
-              allowed.
-            </p>
-          </div>
+
+
+      {/* Recruitment Tests / Quizzes */}
+      {quizEvents.length > 0 && (
+        <div className="mb-8">
+           <h2 className="mb-4 text-xl font-semibold text-foreground">Recruitment Tests & Quizzes</h2>
+           <div className="grid gap-4 md:grid-cols-2">
+               {quizEvents.map(event => {
+                   const registration = getEventRegistrationStatus(event.id)
+                   const isRegistered = !!registration && registration.status !== "rejected"
+                   
+                   return (
+                       <Card key={event.id} className="bg-card border-border">
+                           <CardHeader>
+                               <div className="flex items-center justify-between">
+                                   <StatusBadge variant="default">Quiz</StatusBadge>
+                                   <span className="text-sm text-foreground font-bold">{event.quiz?.totalMarks || 0} Marks</span>
+                               </div>
+                               <CardTitle className="text-foreground mt-2">{event.title}</CardTitle>
+                               <CardDescription className="line-clamp-2">{event.description}</CardDescription>
+                           </CardHeader>
+                           <CardContent className="space-y-4">
+                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                   <FileQuestion className="h-4 w-4" />
+                                   <span>{event.quiz?.questions.length || 0} Questions</span>
+                               </div>
+                               
+                               {!isRegistered ? (
+                                   <Button asChild className="w-full" variant="default">
+                                       <Link href={`/student/quiz?id=${event.id}`}>
+                                           Take Quiz
+                                       </Link>
+                                   </Button>
+                               ) : (
+                                   <Button asChild className="w-full" variant="secondary">
+                                       <Link href={`/student/quiz?id=${event.id}`}>
+                                           Retake Quiz
+                                       </Link>
+                                   </Button>
+                               )}
+                           </CardContent>
+                       </Card>
+                   )
+               })}
+           </div>
         </div>
       )}
 
       {/* Recruitment Events */}
       <div>
         <h2 className="mb-4 text-xl font-semibold text-foreground">Recruitment Events</h2>
-        {clubEvents.length === 0 ? (
+        {generalEvents.length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="p-8 text-center">
               <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
@@ -317,11 +370,11 @@ export default function ClubDetailClient({
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {clubEvents.map((event) => {
+            {generalEvents.map((event) => {
               const registration = getEventRegistrationStatus(event.id)
               const isRegistered = !!registration && registration.status !== "rejected"
               const isRejected = registration?.status === "rejected"
-              const canRegister = !isRegistered && !isAlreadyRegisteredForClub && event.status === "upcoming"
+              const canRegister = !isRegistered && event.status === "upcoming"
 
               return (
                 <div key={event.id} className="cursor-pointer" onClick={() => setSelectedEvent(event)}>
@@ -379,11 +432,6 @@ export default function ClubDetailClient({
                       <Button disabled variant="destructive" className="w-full gap-2">
                         <XCircle className="h-4 w-4" />
                         Registration Rejected
-                      </Button>
-                    ) : isAlreadyRegisteredForClub ? (
-                      <Button disabled variant="secondary" className="w-full gap-2">
-                        <AlertTriangle className="h-4 w-4" />
-                         Already Registered for Club
                       </Button>
                     ) : event.status !== "upcoming" ? (
                       <Button disabled variant="secondary" className="w-full">
@@ -494,11 +542,10 @@ export default function ClubDetailClient({
                           const registration = getEventRegistrationStatus(event.id)
                           const isRegistered = !!registration && registration.status !== "rejected"
                           const isRejected = registration?.status === "rejected"
-                          const canRegister = !isRegistered && !isAlreadyRegisteredForClub && event.status === "upcoming"
+                          const canRegister = !isRegistered && event.status === "upcoming"
                           
                           if (isRegistered) return <Button disabled variant="outline">Already Registered</Button>
                           if (isRejected) return <Button disabled variant="destructive">Registration Rejected</Button>
-                          if (isAlreadyRegisteredForClub) return <Button disabled variant="secondary">Already Registered for Club</Button>
                           if (event.status !== "upcoming") return <Button disabled>Closed</Button>
                           
                           return (

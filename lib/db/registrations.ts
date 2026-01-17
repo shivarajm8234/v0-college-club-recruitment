@@ -102,3 +102,53 @@ export async function checkRegistration(studentId: string, eventId: string): Pro
     return false
   }
 }
+
+export async function submitQuizResult(eventId: string, userId: string, score: number): Promise<void> {
+    try {
+        const q = query(
+            collection(db, "registrations"),
+            where("eventId", "==", eventId),
+            where("userId", "==", userId)
+        )
+        const snapshot = await getDocs(q)
+        
+        if (!snapshot.empty) {
+             const registrationDoc = snapshot.docs[0]
+             const registrationRef = doc(db, "registrations", registrationDoc.id)
+             await updateDoc(registrationRef, {
+                 quizScore: score,
+                 quizSubmitted: true
+             })
+        } else {
+             // Create new registration for the quiz result
+             // First fetch user details to populate registration
+             const userDoc = await getDoc(doc(db, "users", userId))
+             const userData = userDoc.exists() ? userDoc.data() : {}
+             
+             const newRegistration = {
+                id: `r_${eventId}_${userId}`,
+                userId: userId,
+                eventId: eventId,
+                studentId: userData.studentId || userId, // Fallback
+                studentName: userData.name || "Unknown Student",
+                studentEmail: userData.email || "",
+                department: userData.department || "N/A",
+                registeredAt: new Date().toISOString(),
+                status: "approved", // Auto-approve for quiz submissions? or "pending"? Let's say "approved" as they already took it.
+                quizScore: score,
+                quizSubmitted: true
+             }
+             
+             await setDoc(doc(db, "registrations", newRegistration.id), newRegistration)
+             
+             // Update event count
+             const eventRef = doc(db, "events", eventId)
+             await updateDoc(eventRef, {
+                registeredCount: increment(1)
+             })
+        }
+    } catch (error) {
+        console.error("Error submitting quiz result:", error)
+        throw error
+    }
+}

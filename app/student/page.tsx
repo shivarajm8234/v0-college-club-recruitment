@@ -64,6 +64,7 @@ export default function StudentDashboard() {
     .slice(0, 6) // Show top 6 available
 
   return (
+
     <div className="container py-8">
       {/* Welcome Section */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -76,48 +77,7 @@ export default function StudentDashboard() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
-      {/* Stats Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {/* ... stats cards code remains same or we can update stats ... */}
-        {/* Skipping strict update on stats cards for brevity unless requested, 
-            but for coherence let's just make sure variables are valid. 
-            upcomingEvents variable no longer exists, so we use availableEvents + joinedEvents */}
-        
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Clubs</CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{clubs.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {clubs.filter((c) => c.isRecruiting).length} currently recruiting
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Events</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{availableEvents.length}</div>
-            <p className="text-xs text-muted-foreground">Events open for registration</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-card border-border sm:col-span-2 lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">My Schedule</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{joinedEvents.length}</div>
-            <p className="text-xs text-muted-foreground">Events registered</p>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Search and Filter */}
       {/* My Schedule (Joined Events) */}
       {joinedEvents.length > 0 && (
           <div className="mb-8">
@@ -266,14 +226,14 @@ export default function StudentDashboard() {
       </div>
 
       {/* Clubs Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {filteredClubs.map((club) => (
           <ClubCard key={club.id} club={club} />
         ))}
       </div>
 
       {filteredClubs.length === 0 && (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <div className="rounded-lg border border-border bg-card p-8 text-center mb-8">
           <p className="text-muted-foreground">No clubs found matching your criteria</p>
         </div>
       )}

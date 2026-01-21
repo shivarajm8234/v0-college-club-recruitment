@@ -275,12 +275,13 @@ export default function ClubDetailClient({
           </div>
           
            {club.websiteUrl && (
-             <div className="mt-6 flex items-center gap-2">
-                <Globe className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground text-sm">Website:</span>
-                <a href={club.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-medium">
-                  {club.websiteUrl}
-                </a>
+             <div className="mt-6">
+                <Button asChild variant="outline" className="gap-2">
+                  <a href={club.websiteUrl} target="_blank" rel="noopener noreferrer">
+                    More Info
+                    <Globe className="h-4 w-4" />
+                  </a>
+                </Button>
              </div>
            )}
         </div>

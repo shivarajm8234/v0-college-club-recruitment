@@ -4,7 +4,7 @@ import type { Club } from "@/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { Users, User, ArrowRight } from "lucide-react"
+import { Users, User, ArrowRight, ExternalLink } from "lucide-react"
 
 interface ClubCardProps {
   club: Club
@@ -47,14 +47,6 @@ export function ClubCard({ club, linkPrefix = "/student/clubs" }: ClubCardProps)
           </div>
         </div>
         <div className="mt-auto flex flex-col gap-2">
-          {club.websiteUrl && (
-             <div className="text-sm">
-                <span className="font-semibold mr-2">Club URL:</span>
-                <a href={club.websiteUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate inline-block max-w-[200px] align-bottom">
-                  {club.websiteUrl}
-                </a>
-             </div>
-          )}
           <Button
             asChild
             variant="outline"
